@@ -1,0 +1,93 @@
+services:
+  db:
+    container_name: ${POSTGRES_HOST:-db}
+    image: postgres:16.3-alpine
+    restart: ${POSTGRES_RESTART:-always}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "${EXTERNAL_DB_PORT:-5432}:${EXTERNAL_DB_PORT:-5432}"
+    command: postgres -p ${EXTERNAL_DB_PORT:-5432}
+    environment:
+      PGUSER: ${POSTGRES_USER:-admin}
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+      POSTGRES_DB: ${POSTGRES_DB:-admin}
+      POSTGRES_RESTART: ${POSTGRES_RESTART:-always}
+      EXTERNAL_DB_PORT: ${EXTERNAL_DB_PORT:-5432}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -p ${EXTERNAL_DB_PORT:-5432}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+  service:
+    container_name: ${CONTAINER_NAME:-service}
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - "${APP_PORT:-8080}:${APP_PORT:-8080}"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: ${RESTART_POLICY:-always}
+    environment:
+      APP_PORT: ${APP_PORT:-8080}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:${EXTERNAL_DB_PORT:-5432}/${POSTGRES_DB:-admin}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-admin}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+      SPRING_LOGGING_LEVEL_ROOT: ${SPRING_LOGGING_LEVEL_ROOT:-info}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      CORS_ALLOWED_ORIGIN_PATTERNS: ${CORS_ALLOWED_ORIGIN_PATTERNS:-http://localhost:*,http://127.0.0.1:*}
+      COOKIES_SECURE: ${COOKIES_SECURE:-false}
+      COOKIES_SAME_SITE: ${COOKIES_SAME_SITE:-Lax}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgv/p1NpJmKYDLnfnVfBKyx/D4bBN5WxPooVAZALiU+rGhRANCAATaNtTOuwKnJxGkOhhnMPfgeb1NtvrrBd8hTT+v0lEkBwrfqo0YXyAEstGYvmAsxCfrMJy+lhr8NBIeUOyHVXr0}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE2jbUzrsCpycRpDoYZzD34Hm9Tbb66wXfIU0/r9JRJAcK36qNGF8gBLLRmL5gLMQn6zCcvpYa/DQSHlDsh1V69A==}
+      JWT_ACCESS_EXPIRATION: ${JWT_ACCESS_EXPIRATION:-900}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-864000}
+    volumes:
+      - client_data:/data
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
+    healthcheck:
+      test: ["CMD-SHELL", "echo srvr | nc -w 2 localhost 2181 | grep -q Mode"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka
+    restart: unless-stopped
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+volumes:
+  pg_data:
+  client_data:
+  zookeeper_data:
+  zookeeper_log:
+  kafka_data:
