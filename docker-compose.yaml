@@ -53,11 +53,14 @@ services:
     container_name: zookeeper
     restart: unless-stopped
     environment:
+      ZOO_LOG4J_ROOT_LOGLEVEL: WARN
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      SERVER_JVMFLAGS: "-Dlog4j.configuration=file:///conf/log4j.properties -Dorg.apache.zookeeper.server.NettyServerCnxnFactory.logallcnxn=false"
     ports:
       - "2181:2181"
     volumes:
+      - ./zookeeper/log4j.properties:/conf/log4j.properties
       - zookeeper_data:/var/lib/zookeeper/data
       - zookeeper_log:/var/lib/zookeeper/log
     healthcheck:

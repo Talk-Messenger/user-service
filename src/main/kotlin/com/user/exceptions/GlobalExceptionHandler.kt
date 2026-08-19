@@ -2,8 +2,8 @@ package com.user.exceptions
 
 import com.user.exceptions.basic.BasicException
 import com.user.exceptions.dto.ErrorDto
-import io.github.oshai.kotlinlogging.KotlinLogging
 import jakarta.validation.ConstraintViolationException
+import mu.KotlinLogging
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException

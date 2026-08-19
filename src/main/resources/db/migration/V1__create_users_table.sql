@@ -3,10 +3,9 @@ CREATE TABLE users (
     username VARCHAR(20) UNIQUE NOT NULL,
     avatar_url VARCHAR(1024),
     bio VARCHAR(1024),
-    created_at TIMESTAMP DEFAULT now(),
-    updated_at TIMESTAMP DEFAULT now(),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
 );
 
-CREATE UNIQUE INDEX ux_users_username(username);
-CREATE INDEX ix_users_deleted_at(deleted_at);
+CREATE INDEX ix_users_deleted_at ON users(deleted_at);

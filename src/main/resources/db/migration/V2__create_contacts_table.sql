@@ -1,8 +1,8 @@
 CREATE TABLE contacts (
     id UUID NOT NULL PRIMARY KEY,
-    user_id UUID REFERENCES users(id) NOT NULL ON DELETE CASCADE,
-    contact_user_id UUID REFERENCES users(id) NOT NULL ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT now(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    contact_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     UNIQUE (user_id, contact_user_id),
     CHECK ( user_id != contact_user_id )
